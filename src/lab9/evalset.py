@@ -29,6 +29,23 @@ REQUIRED = ("item_id", "claim_id", "failure_modes", "provenance", "split", "eval
 
 FM_CODE = re.compile(r"FM-\d{2}")
 
+FAILURE_MODES_V1: dict[str, list[str]] = {
+    "C-001": ["FM-07", "FM-04", "FM-01"],
+    "C-002": ["FM-03", "FM-01"],
+    "C-003": ["FM-01"],
+    "C-004": ["FM-01"],
+    "C-005": ["FM-01", "FM-09"],
+    "C-006": ["FM-06", "FM-01"],
+    "C-007": ["FM-02", "FM-01"],
+    "C-008": ["FM-08", "FM-04", "FM-01"],
+    "C-009": ["FM-02", "FM-01"],
+    "C-010": ["FM-07", "FM-01"],
+    "C-011": ["FM-07", "FM-01"],
+    "C-012": ["FM-07", "FM-01"],
+    "C-013": ["FM-05", "FM-02", "FM-01"],
+    "C-014": ["FM-04", "FM-05", "FM-08", "FM-01"],
+}
+
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -43,21 +60,21 @@ def build(source: Path = SOURCE) -> tuple[int, int]:
     items, labels = [], {}
     for n, claim in enumerate(claims, start=1):
         item_id = f"E-{n:03d}"
+        cid = claim["claim_id"]
         items.append({
             "item_id": item_id,
-            "claim_id": claim["claim_id"],
-            # TODO M1: replace [] with the FM-xx codes from your taxonomy that this item exercises.
-            "failure_modes": [],
+            "claim_id": cid,
+            "failure_modes": list(FAILURE_MODES_V1.get(cid, ["FM-01"])),
             "provenance": {"source": "lab8_public", "matrix_id": claim.get("matrix_id"),
                            "from_trace": None, "generator": None,
                            "label_by": "lab8_matrix", "checked_by": None},
             "split": "regression",
             "eval_set_version": VERSION,
         })
-        labels[claim["claim_id"]] = claim["expected"]
+        labels[cid] = claim["expected"]
     ITEMS.parent.mkdir(parents=True, exist_ok=True)
-    ITEMS.write_text("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items), encoding="utf-8")
-    LABELS.write_text(json.dumps(labels, ensure_ascii=False, indent=2), encoding="utf-8")
+    ITEMS.write_text("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items), encoding="utf-8", newline="\n")
+    LABELS.write_text(json.dumps(labels, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
     return len(items), len(labels)
 
 
@@ -98,8 +115,8 @@ def build_v2(items_v1: Path = ITEMS, labels_v1: Path = LABELS, pack: Path = PACK
             "slices": slices_for(claim["expected"], True),
         })
         labels[claim["claim_id"]] = claim["expected"]
-    ITEMS_V2.write_text("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items), encoding="utf-8")
-    LABELS_V2.write_text(json.dumps(labels, ensure_ascii=False, indent=2), encoding="utf-8")
+    ITEMS_V2.write_text("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items), encoding="utf-8", newline="\n")
+    LABELS_V2.write_text(json.dumps(labels, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
     return len(items), len(labels)
 
 
